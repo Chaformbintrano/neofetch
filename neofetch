@@ -5208,7 +5208,7 @@ ${c1}                    y:
 EOF
         ;;
 
-        "Arch-original"*)
+        "Arch_original"*)
            set_colors 6 6 7 1
             read -rd '' ascii_data <<'EOF'
 ${c1}                   -`
@@ -8139,7 +8139,7 @@ ${c1}              ..-::::::-.`
 EOF
         ;;
 
-        "Ubuntu-original"*)
+        "Ubuntu_original"*)
             set_colors 1 7 3
             read -rd '' ascii_data <<'EOF'
 ${c1}            .-/+oossssoo+/-.
