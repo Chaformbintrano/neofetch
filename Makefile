@@ -14,3 +14,7 @@ install:
 uninstall:
 	@rm -rf $(DESTDIR)$(PREFIX)/bin/neofetch
 	@rm -rf $(DESTDIR)$(MANDIR)/man1/neofetch.1*
+
+deinstall:
+	@rm -rf $(DESTDIR)$(PREFIX)/bin/neofetch
+	@rm -rf $(DESTDIR)$(MANDIR)/man1/neofetch.1*
