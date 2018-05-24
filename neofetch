@@ -74,7 +74,7 @@ print_info() {
     # info "Disk" disk
     # info "Battery" battery
     # info "Font" font
-    # info "Song" song
+    info "Song" song
     # info "Local IP" local_ip
     # info "Public IP" public_ip
     # info "Users" users
@@ -431,7 +431,7 @@ disk_subtitle="mount"
 # yarock
 # sayonara
 # vlc
-music_player="auto"
+music_player="cmus"
 
 # Format to display song information.
 #
@@ -2316,160 +2316,6 @@ get_memory() {
     esac
 }
 
-get_song() {
-    player="$(ps -e | grep -m 1 -F \
-                           -e "Google Play" \
-                           -e "Spotify" \
-                           -e "amarok" \
-                           -e "audacious" \
-                           -e "banshee" \
-                           -e "bluemindo" \
-                           -e "clementine" \
-                           -e "cmus" \
-                           -e "deadbeef" \
-                           -e "deepin-music" \
-                           -e "elisa" \
-                           -e "exaile" \
-                           -e "gnome-music" \
-                           -e "guayadeque" \
-                           -e "iTunes" \
-                           -e "juk" \
-                           -e "lollypop" \
-                           -e "mocp" \
-                           -e "mopidy" \
-                           -e "mpd" \
-                           -e "pogo" \
-                           -e "pragha" \
-                           -e "qmmp" \
-                           -e "quodlibet" \
-                           -e "rhythmbox" \
-                           -e "spotify" \
-                           -e "tomahawk" \
-                           -e "xmms2d" \
-                           -e "yarock" \
-                           -e "sayonara" \
-                           -e "vlc")"
-    player="${player/* }"
-    player="${player##*/}"
-
-    [[ "$music_player" && "$music_player" != "auto" ]] && \
-        player="$music_player"
-
-    get_song_dbus() {
-        # Multiple players use an almost identical dbus command to get the information.
-        # This function saves us using the same command throughout the function.
-        song="$(\
-            dbus-send --print-reply --dest=org.mpris.MediaPlayer2."${1}" /org/mpris/MediaPlayer2 \
-            org.freedesktop.DBus.Properties.Get string:'org.mpris.MediaPlayer2.Player' \
-            string:'Metadata' |\
-            awk -F '"' 'BEGIN {RS=" entry"}; /xesam:artist/ {a = $4} /xesam:album/ {b = $4}
-                        /xesam:title/ {t = $4} END {print a " ‡ " b " ‡ " t}'
-        )"
-    }
-
-    case "${player/*\/}" in
-        "mpd"* | "mopidy"*) song="$(mpc -f '%artist% ‡ %album% ‡ %title%' current)" ;;
-        "mocp"*)         song="$(mocp -Q "%artist ‡ %album ‡ %song")" ;;
-        "google play"*)  song="$(gpmdp-remote current)" ;;
-        "rhythmbox"*)    song="$(rhythmbox-client --print-playing-format '%ta ‡ %at ‡ %tt')" ;;
-        "deadbeef"*)     song="$(deadbeef --nowplaying-tf '%artist% ‡ %album% ‡ %title%')" ;;
-        "xmms2d"*)       song="$(xmms2 current -f '${artist} ‡ ${album} ‡ ${title}')" ;;
-        "qmmp"*)         song="$(qmmp --nowplaying '%p ‡ %a ‡ %t')" ;;
-        "gnome-music"*)  get_song_dbus "GnomeMusic" ;;
-        "lollypop"*)     get_song_dbus "Lollypop" ;;
-        "clementine"*)   get_song_dbus "clementine" ;;
-        "juk"*)          get_song_dbus "juk" ;;
-        "bluemindo"*)    get_song_dbus "Bluemindo" ;;
-        "guayadeque"*)   get_song_dbus "guayadeque" ;;
-        "yarock"*)       get_song_dbus "yarock" ;;
-        "deepin-music"*) get_song_dbus "DeepinMusic" ;;
-        "tomahawk"*)     get_song_dbus "tomahawk" ;;
-        "elisa"*)        get_song_dbus "elisa" ;;
-        "sayonara"*)     get_song_dbus "sayonara" ;;
-        "audacious"*)    get_song_dbus "audacious" ;;
-        "vlc"*)          get_song_dbus "vlc" ;;
-
-        "cmus"*)
-            song="$(cmus-remote -Q | awk 'BEGIN { ORS=" "};
-                                          /tag artist/ {$1=$2=""; sub("  ", ""); a=$0}\
-                                          /tag album / {$1=$2=""; sub("  ", ""); b=$0}\
-                                          /tag title/ {$1=$2=""; sub("  ", ""); t=$0}\
-                                          END { print a " ‡ " b " ‡ " t }')"
-        ;;
-
-        "spotify"*)
-            case "$os" in
-                "Linux") get_song_dbus "spotify" ;;
-
-                "Mac OS X")
-                    song="$(osascript -e 'tell application "Spotify" to artist of current track as¬
-                                          string & " ‡ " & album of current track as¬
-                                          string & " ‡ " & name of current track as string')"
-                ;;
-            esac
-        ;;
-
-        "itunes"*)
-            song="$(osascript -e 'tell application "iTunes" to artist of current track as¬
-                                  string & " ‡ " & album of current track as¬
-                                  string & " ‡ " & name of current track as string')"
-        ;;
-
-        "banshee"*)
-            song="$(banshee --query-artist --query-album --query-title |\
-                    awk -F':' '/^artist/ {a=$2} /^album/ {b=$2} /^title/ {t=$2}
-                    END{print a " ‡ " b " ‡ "t}')"
-        ;;
-
-        "amarok"*)
-            song="$(qdbus org.kde.amarok /Player GetMetadata |\
-                    awk -F':' '/^artist:/ {a=$2} /^album:/ {b=$2} /^title:/ {t=$2}
-                    END{print a " ‡ " b " ‡ " t}')"
-        ;;
-
-        "pragha"*)
-            song="$(pragha -c | awk -F':' '/^artist/ {a=$2} /^album/ {b=$2} /^title/ {t=$2}
-                                END{print a " ‡ " b " ‡ " t}')"
-        ;;
-
-        "exaile"*)
-            song="$(dbus-send --print-reply --dest=org.exaile.Exaile  /org/exaile/Exaile \
-                    org.exaile.Exaile.Query |
-                    awk -F':|,' '{if ($6 && $8 && $4) printf $6 " ‡" $8 " ‡" $4}')"
-        ;;
-
-        "quodlibet"*)
-            song="$(dbus-send --print-reply --dest=net.sacredchao.QuodLibet \
-                    /net/sacredchao/QuodLibet net.sacredchao.QuodLibet.CurrentSong |\
-                    awk -F'"' '/artist/ {getline; a=$2} /album/ {getline; b=$2}
-                               /title/ {getline; t=$2} END{print a " ‡ " b " ‡ " t}')"
-        ;;
-
-        "pogo"*)
-            song="$(dbus-send --print-reply --dest=org.mpris.pogo /Player \
-                    org.freedesktop.MediaPlayer.GetMetadata |
-                    awk -F'"' '/string "artist"/ {getline; a=$2} /string "album"/ {getline; b=$2} \
-                               /string "title"/ {getline; t=$2} END{print a " ‡ " b " ‡ " t}')"
-        ;;
-
-        *) mpc >/dev/null 2>&1 && song="$(mpc -f '%artist% ‡ %album% ‡ %title%' current)" ;;
-    esac
-
-    [[ "$song" != *[a-z]* ]] && { unset -v song; return; }
-
-    LC_ALL="$sys_locale" IFS="‡" read -r artist album title <<< "$song"
-
-    # Display Artist, Album and Title on separate lines.
-    if [[ "$song_shorthand" == "on" ]]; then
-        [[ "$(trim "$artist")" ]] && prin "Artist" "$artist"
-        [[ "$(trim "$album")" ]]  && prin "Album" "$album"
-        [[ "$(trim "$song")" ]]   && prin "Song" "$title"
-    else
-        song="${song_format/\%artist\%/${artist}}"
-        song="${song/\%album\%/${album}}"
-        song="${song/\%title\%/${title}}"
-    fi
-}
 
 get_resolution() {
     case "$os" in
@@ -4421,10 +4267,6 @@ INFO:
                                 'dir' shows the basename of the disks's path. (/, Local Disk, etc)
 
     --ip_host url               URL to query for public IP
-    --song_format format        Print the song data in a specific format (see config file).
-    --song_shorthand on/off     Print the Artist/Album/Title on separate lines.
-    --music_player player-name  Manually specify a player to use.
-                                Available values are listed in the config file
     --install_time on/off       Enable/Disable showing the time in Install Date output.
     --install_time_format 12h/24h
                                 Set time format in Install Date to be 12 hour or 24 hour.
@@ -8516,3 +8358,4 @@ main "$@"
 
 echo
 echo
+# cmus-info
